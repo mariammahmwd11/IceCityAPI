@@ -1,5 +1,7 @@
 ﻿using Business_Layer.DTO;
+using Business_Layer.Helper;
 using Data_Access.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Models.Models;
@@ -18,6 +20,7 @@ namespace Week1_Advanced_API_Migrations.Controllers
         }
 
         [HttpPost("readings")]
+        [Authorize(Roles = "Admin,Operator")]
         public IActionResult ReadSensorData(SensorReaderDTO readerDTO)
         {
             if(ModelState.IsValid)

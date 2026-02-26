@@ -24,5 +24,7 @@ namespace Models.Models
         public string Email { get; set; }
         [JsonIgnore]
         public List<House> houses { get; set; } = new();
+        public User? user { get; set; }
+
     }
 }

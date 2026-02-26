@@ -20,5 +20,7 @@ namespace Data_Access.Data
         public virtual DbSet<Heater> heaters { get; set; }
         public virtual DbSet<MonthlyCostReport> monthlyCostReports { get; set; }
         public virtual  DbSet<SensorReading> sensorReadings { get; set; }
+        public virtual  DbSet<User> Users { get; set; }
+
     }
 }

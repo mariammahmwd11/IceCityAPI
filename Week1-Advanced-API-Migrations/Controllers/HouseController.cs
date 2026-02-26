@@ -1,5 +1,6 @@
 ﻿using Business_Layer.IServices;
 using Data_Access.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Hosting;
@@ -37,6 +38,7 @@ namespace Week1_Advanced_API_Migrations.Controllers
 
         }
         [HttpGet("{houseId}/monthly-report")]
+        [Authorize(Roles = "Admin,Operator,User")]
         public IActionResult MonthlyReport(int houseId)
         {
             var house = context.houses.FirstOrDefault(b => b.HouseId == houseId);
