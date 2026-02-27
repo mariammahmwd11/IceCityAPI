@@ -22,6 +22,17 @@ namespace Week1_Advanced_API_Migrations.Controllers
             if (ModelState.IsValid)
             {
                 var result = authService.Register(registerDTO);
+                if (result.IsAuthenticated == false)
+                {
+                    if (result.Message == "This email is token before")
+                    {
+                        return Conflict(result.Message);
+                    }
+                    else if (result.Message == "There is No Owner Match this email")
+                    {
+                        return BadRequest(result.Message);
+                    }
+                }
                 return Ok(result); 
             }
             return BadRequest();
@@ -33,6 +44,10 @@ namespace Week1_Advanced_API_Migrations.Controllers
             if (ModelState.IsValid)
             {
                 var result = authService.login(loginDto);
+                if(result.IsAuthenticated==false)
+                {
+                    return BadRequest(result.Message);
+                }
                 return Ok(result); 
             }
             return BadRequest();
@@ -46,7 +61,11 @@ namespace Week1_Advanced_API_Migrations.Controllers
                 return BadRequest(new { message = "Refresh token is required" });
 
             var result = await authService.RefreshToken(refershTokenDTO.RefereshToken);
-            return Ok(result); 
+            if (!result.IsAuthenticated)
+                return BadRequest(result);
+
+            return Ok(result);
+         
         }
     }
 }

@@ -75,7 +75,7 @@ namespace Week1_Advanced_API_Migrations
                       ValidIssuer = builder.Configuration["JWT:Issuer"],
                       ValidateIssuerSigningKey = true,
                       IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:Key"])),
-                      
+                      ValidateLifetime=true,
                       ClockSkew = TimeSpan.Zero
                   };
               }

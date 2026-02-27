@@ -14,8 +14,10 @@ namespace Models.Helper
         public string Token { get; set; }
         public string Message { get; set; }
         public DateTime TokenExbireAt { get; set; }
+        public bool IsAuthenticated { get; set; }
         //refereshtoken
         public string RefereshToken { get; set; }
         public DateTime RefereshTokenExbirationAt { get; set; }
+
     }
 }

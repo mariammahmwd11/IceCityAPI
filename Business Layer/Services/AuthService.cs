@@ -65,12 +65,15 @@ namespace Business_Layer.Services
             if(user==null)
             {
                 authModel.Message = "There is no user Match this email";
+                authModel.IsAuthenticated = false;
                 return authModel;
             }
             var result = passwordService.VarifyHashedPassword(loginDTO.Password, user.PasswordHash);
             if(result==false)
             {
                 authModel.Message = "Email or password is invalid";
+                authModel.IsAuthenticated = false;
+
                 return authModel;
             }
             var token = GenereteToken(user);
@@ -80,18 +83,22 @@ namespace Business_Layer.Services
                 authModel.RefereshToken = refreshtocken.refereshToken;
                 authModel.RefereshTokenExbirationAt = refreshtocken.exbireon;
             }
-            var newRefreshToken = GenereteRefershToken();
+            else
+            {
+                var newRefreshToken = GenereteRefershToken();
 
-            if (user.RefreshTokens == null)
-                user.RefreshTokens = new List<RefereshToken>();
+                if (user.RefreshTokens == null)
+                    user.RefreshTokens = new List<RefereshToken>();
 
-            user.RefreshTokens.Add(newRefreshToken);
+                user.RefreshTokens.Add(newRefreshToken);
 
-            context.SaveChanges();
+                context.SaveChanges();
 
-            authModel.RefereshToken = newRefreshToken.refereshToken;
-            authModel.RefereshTokenExbirationAt = newRefreshToken.exbireon;
+                authModel.RefereshToken = newRefreshToken.refereshToken;
+                authModel.RefereshTokenExbirationAt = newRefreshToken.exbireon;
+            }
             authModel.Message = "Login Successfully";
+            authModel.IsAuthenticated = true;
             authModel.UserId = user.UserId.ToString();
             authModel.Token = new JwtSecurityTokenHandler().WriteToken(token);
             authModel.TokenExbireAt = DateTime.UtcNow.AddMinutes(jWT.ExbirationInMinutes);
@@ -109,6 +116,7 @@ namespace Business_Layer.Services
             if(_user!=null)
             {
                 authmodel.Message = "This email is token before";
+                authmodel.IsAuthenticated = false;
                 return authmodel;
             }
             Owner owner=null;
@@ -118,6 +126,8 @@ namespace Business_Layer.Services
                 if(owner==null)
                 {
                     authmodel.Message = "There is No Owner Match this email";
+                    authmodel.IsAuthenticated = false;
+
                     return authmodel;
                 }
             }
@@ -140,6 +150,7 @@ namespace Business_Layer.Services
             
             //assign response
             authmodel.Message = "Registered Successfully";
+            authmodel.IsAuthenticated = true;
             authmodel.UserId = DbUser.UserId.ToString();
             authmodel.Token = new JwtSecurityTokenHandler().WriteToken(token);
             authmodel.TokenExbireAt =DateTime.UtcNow.AddMinutes(jWT.ExbirationInMinutes);
@@ -177,6 +188,7 @@ namespace Business_Layer.Services
             if (user == null)
             {
                 model.Message = "Token is invalid";
+                model.IsAuthenticated = false;
                 return model;
             }
 
@@ -186,6 +198,7 @@ namespace Business_Layer.Services
             if (!oldToken.IActive)
             {
                 model.Message = "Token is not active";
+                model.IsAuthenticated = false;
                 return model;
             }
 
@@ -204,6 +217,7 @@ namespace Business_Layer.Services
             model.TokenExbireAt = DateTime.UtcNow.AddMinutes(jWT.ExbirationInMinutes); 
             model.Role = user.Role.ToString();
             model.UserId = user.UserId.ToString();
+            model.IsAuthenticated = true;
             model.Message = "Token refreshed successfully";
 
             return model;
