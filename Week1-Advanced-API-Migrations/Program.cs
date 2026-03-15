@@ -21,10 +21,10 @@ namespace Week1_Advanced_API_Migrations
 
             // Add services to the container.
 
-            builder.Services.AddControllers();
+            builder.Services.AddControllersWithViews();
 
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-            
+
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.Configure<JWTHelper>(builder.Configuration.GetSection("JWT"));
             builder.Services.AddSwaggerGen(options =>
@@ -54,51 +54,81 @@ namespace Week1_Advanced_API_Migrations
         }
     });
             });
+
+
+
             builder.Services.AddDbContext<ApplicationDbContext>(
-                option => option.UseSqlServer(builder.Configuration.GetConnectionString("Defult")));
+      option => option.UseSqlServer(builder.Configuration.GetConnectionString("Defult")));
+
             builder.Services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-            }
-         )
-             .AddJwtBearer(
-              opt => {
-                  opt.SaveToken = true;
-                  opt.RequireHttpsMetadata = false;
-                  opt.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters()
-                  {
-                      ValidateAudience = true,
-                      ValidAudience = builder.Configuration["JWT:Audience"],
-                      ValidateIssuer = true,
-                      ValidIssuer = builder.Configuration["JWT:Issuer"],
-                      ValidateIssuerSigningKey = true,
-                      IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:Key"])),
-                      ValidateLifetime=true,
-                      ClockSkew = TimeSpan.Zero
-                  };
-              }
-             );
-            builder.Services.AddScoped<IHouseService, HouseService>();
-            builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
-            builder.Services.AddScoped<IPasswordService, PasswordService>();
-            builder.Services.AddScoped<IAuthService, AuthService>();
-            var app = builder.Build();
-
-            // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
+            })
+            .AddJwtBearer(opt =>
             {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
+                opt.SaveToken = true;
+                opt.RequireHttpsMetadata = false;
+
+                opt.TokenValidationParameters = new TokenValidationParameters()
+                {
+                    ValidateAudience = true,
+                    ValidAudience = builder.Configuration["JWT:Audience"],
+
+                    ValidateIssuer = true,
+                    ValidIssuer = builder.Configuration["JWT:Issuer"],
+
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(
+                        Encoding.UTF8.GetBytes(builder.Configuration["JWT:Key"])
+                    ),
+
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.Zero
+                };
+
+                opt.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var token = context.Request.Cookies["AccessTokenInCookie"];
+
+                        if (!string.IsNullOrEmpty(token))
+                        {
+                            context.Token = token;
+                        }
+
+                        return Task.CompletedTask;
+                    }
+                };
+            });
+            builder.Services.AddScoped<IHouseService, HouseService>();
+                  builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+                  builder.Services.AddScoped<IPasswordService, PasswordService>();
+                  builder.Services.AddScoped<IAuthService, AuthService>();
+                  builder.Services.AddScoped<IDashboardService, DashboardService>();
+                  builder.Services.AddScoped<IReportService, ReportService>();
+
+                  var app = builder.Build();
+
+                  // Configure the HTTP request pipeline.
+                  if (app.Environment.IsDevelopment())
+                  {
+                      app.UseSwagger();
+                      app.UseSwaggerUI();
+                  }
+            app.UseStaticFiles();
             app.UseAuthentication();
-            app.UseAuthorization();
+                  app.UseAuthorization();
 
+                  app.MapControllerRoute(
+                    name: "areas",
+                   pattern: "{area:exists}/{controller=Test}/{action=Index}/{id?}"
+              );
+                  app.MapControllers();
 
-            app.MapControllers();
-
-            app.Run();
-        }
+                  app.Run();
+              }
+    } 
     }
-}

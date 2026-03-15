@@ -1,0 +1,469 @@
+﻿@model Business_Layer.DTO.ReportResult
+@using Models.Models
+@{
+    Layout = null;
+
+    var heaters = Model?.Heaters ?? new List<Heater>();
+
+    var dailyUsages = Model?.DailyUsages?
+        .OrderBy(d => d.Date.Date)
+        .TakeLast(30)
+        .ToList() ?? new List<Business_Layer.DTO.DailyUsageVm>();
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>House Report — @Model?.HouseAddress</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+    <style>
+        :root {
+            --primary: #1a2e4a;
+            --accent: #00c9a7;
+            --text-main: #1c2b3a;
+            --text-muted: #6b7c93;
+            --border: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            color: var(--text-main);
+            background: #fff;
+            margin: 0;
+            padding: 0;
+        }
+
+        .print-page {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            padding: 18mm 16mm;
+        }
+
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding-bottom: 16px;
+            border-bottom: 3px solid var(--primary);
+            margin-bottom: 28px;
+        }
+
+        .report-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .report-brand-icon {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, #00c9a7, #3b9eff);
+            border-radius: 10px;
+            display: grid;
+            place-items: center;
+            color: #fff;
+            font-size: 1.1rem;
+        }
+
+        .brand-name {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: var(--primary);
+            line-height: 1.2;
+        }
+
+        .brand-sub {
+            font-size: .72rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .report-meta {
+            text-align: right;
+        }
+
+            .report-meta .report-title {
+                font-family: 'Syne', sans-serif;
+                font-weight: 700;
+                font-size: .95rem;
+                color: var(--primary);
+            }
+
+            .report-meta .report-date {
+                font-size: .78rem;
+                color: var(--text-muted);
+            }
+
+        .section-title {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: .82rem;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 6px;
+            margin-bottom: 14px;
+            margin-top: 24px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+            margin-bottom: 6px;
+        }
+
+        .info-item {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 14px;
+        }
+
+        .info-label {
+            font-size: .68rem;
+            text-transform: uppercase;
+            letter-spacing: .8px;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+
+        .info-value {
+            font-size: .92rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .82rem;
+        }
+
+            .report-table thead th {
+                background: var(--primary);
+                color: #fff;
+                padding: 9px 12px;
+                text-align: left;
+                font-size: .72rem;
+                text-transform: uppercase;
+                letter-spacing: .8px;
+                font-weight: 600;
+            }
+
+            .report-table tbody td {
+                padding: 8px 12px;
+                border-bottom: 1px solid var(--border);
+                vertical-align: middle;
+            }
+
+            .report-table tbody tr:nth-child(even) td {
+                background: #f8fafc;
+            }
+
+        .heater-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            background: rgba(245,166,35,.12);
+            color: #f5a623;
+            font-size: .75rem;
+            font-weight: 600;
+        }
+
+        .report-footer {
+            margin-top: 36px;
+            padding-top: 14px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+            .report-footer p {
+                font-size: .72rem;
+                color: var(--text-muted);
+                margin: 0;
+            }
+
+        .page-break {
+            page-break-before: always;
+        }
+
+        .no-break {
+            page-break-inside: avoid;
+        }
+
+        @@media print {
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .print-page {
+                width: 100%;
+                padding: 10mm 12mm;
+                margin: 0;
+            }
+
+            a {
+                text-decoration: none !important;
+            }
+        }
+
+        @@media screen {
+            body {
+                background: #e2e8f0;
+            }
+
+            .print-page {
+                margin: 30px auto;
+                box-shadow: 0 8px 40px rgba(0,0,0,.15);
+                background: #fff;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-page">
+
+        <!-- ── HEADER ── -->
+        <div class="report-header">
+            <div class="report-brand">
+                <div class="report-brand-icon"><i class="bi bi-lightning-charge-fill"></i></div>
+                <div>
+                    <div class="brand-name">GridWatch</div>
+                    <div class="brand-sub">Mayor's Office — City Energy Portal</div>
+                </div>
+            </div>
+            <div class="report-meta">
+                <div class="report-title">House Consumption Report</div>
+                <div class="report-date">Generated: @Model?.GeneratedAt.ToString("MMMM d, yyyy — HH:mm")</div>
+            </div>
+        </div>
+
+        <!-- ── PROPERTY INFO ── -->
+        <div class="section-title">Property Information</div>
+        <div class="info-grid">
+            <div class="info-item">
+                <div class="info-label">Owner</div>
+                <div class="info-value">@Model?.OwnerName</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Address</div>
+                <div class="info-value">@Model?.HouseAddress</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Total Heaters</div>
+                <div class="info-value">@heaters.Count unit(s)</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Total Working Hours</div>
+                <div class="info-value">@Model?.TotalWorkingHours hrs</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Median Heater Value</div>
+                <div class="info-value">@Model?.MedianHeaterValue.ToString("N2") kWh</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Monthly Avg Cost</div>
+                <div class="info-value">@Model?.MonthlyAverageCost.ToString("N2")</div>
+            </div>
+        </div>
+
+        <!-- ── HEATERS TABLE ── -->
+        <div class="no-break">
+            <div class="section-title">
+                <i class="bi bi-thermometer-half" style="color:#f5a623;margin-right:6px"></i>
+                Installed Heaters
+            </div>
+            @if (heaters.Any())
+            {
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Heater Type</th>
+                            <th>Power Value (kW)</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            int hi = 1;
+                        }
+                        @foreach (var heater in heaters)
+                        {
+                            <tr>
+                                <td style="color:var(--text-muted);font-size:.8rem">@hi</td>
+                                <td>
+                                    <div style="display:flex;align-items:center;gap:8px">
+                                        <div style="width:28px;height:28px;border-radius:7px;background:rgba(245,166,35,.12);color:#f5a623;display:grid;place-items:center;font-size:.85rem">
+                                            <i class="bi bi-thermometer-high"></i>
+                                        </div>
+                                        <strong>@heater.HeaterType</strong>
+                                    </div>
+                                </td>
+                                <td>
+                                    <strong>@heater.PowerValue</strong>
+                                    <span style="color:var(--text-muted);font-size:.8rem"> kW</span>
+                                </td>
+                                <td>
+                                    <span class="heater-badge">
+                                        <i class="bi bi-circle-fill" style="font-size:.4rem"></i> Active
+                                    </span>
+                                </td>
+                            </tr>
+                            hi++;
+                        }
+                    </tbody>
+                </table>
+
+                <!-- Heater summary bar -->
+                <div style="margin-top:10px;padding:10px 12px;background:#fff8ee;border-radius:8px;border:1px solid #f5a62333;display:flex;gap:24px">
+                    <div>
+                        <span style="font-size:.72rem;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted)">Total Heaters</span><br />
+                        <strong style="font-size:.92rem">@heaters.Count units</strong>
+                    </div>
+                    <div>
+                        <span style="font-size:.72rem;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted)">Total Power</span><br />
+                        <strong style="font-size:.92rem">@heaters.Sum(h => h.PowerValue) kW</strong>
+                    </div>
+                    <div>
+                        <span style="font-size:.72rem;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted)">Avg Power / Unit</span><br />
+                        <strong style="font-size:.92rem">@heaters.Average(h => h.PowerValue).ToString("N1") kW</strong>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <p style="color:var(--text-muted);font-size:.85rem;padding:16px;background:#f8fafc;border-radius:8px;border:1px solid var(--border)">
+                    <i class="bi bi-thermometer" style="margin-right:6px"></i>No heaters registered for this property.
+                </p>
+            }
+        </div>
+
+        <!-- ── PAGE BREAK ── -->
+        <div class="page-break"></div>
+
+        <!-- ── PAGE 2 HEADER ── -->
+        <div class="report-header" style="border-bottom-width:1px">
+            <div class="report-brand">
+                <div class="report-brand-icon"><i class="bi bi-lightning-charge-fill"></i></div>
+                <div>
+                    <div class="brand-name">GridWatch</div>
+                    <div class="brand-sub">Mayor's Office — City Energy Portal</div>
+                </div>
+            </div>
+            <div class="report-meta">
+                <div class="report-title">Daily Usage — Continued</div>
+                <div class="report-date">@Model?.HouseAddress</div>
+            </div>
+        </div>
+
+        <!-- ── DAILY USAGE TABLE ── -->
+        <div class="section-title">
+            <i class="bi bi-table" style="color:#3b9eff;margin-right:6px"></i>
+            Daily Usage Log (Last 30 Days)
+        </div>
+        @if (dailyUsages.Any())
+        {
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Date</th>
+                        <th>Hours Worked</th>
+                        <th>Heater Value (kWh)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        int di = 1;
+                    }
+                    @foreach (var usage in dailyUsages)
+                    {
+                        <tr>
+                            <td style="color:var(--text-muted);font-size:.8rem">@di</td>
+                            <td><strong>@usage.Date.ToString("MMM dd, yyyy")</strong></td>
+                            <td>
+                                <i class="bi bi-clock" style="color:var(--text-muted);margin-right:4px"></i>
+                                @usage.HoursWorked.ToString("N1") hrs
+                            </td>
+                            <td>
+                                <strong>@usage.HeaterValue.ToString("N2")</strong>
+                                <span style="color:var(--text-muted);font-size:.8rem"> kWh</span>
+                            </td>
+                        </tr>
+                        di++;
+                    }
+                </tbody>
+            </table>
+
+            <!-- Usage summary bar -->
+            <div style="margin-top:12px;padding:10px 12px;background:#f0f9f7;border-radius:8px;border:1px solid #00c9a733;display:flex;gap:24px">
+                <div>
+                    <span style="font-size:.72rem;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted)">Total Usage</span><br />
+                    <strong style="font-size:.92rem">@dailyUsages.Sum(d => d.HeaterValue).ToString("N2") kWh</strong>
+                </div>
+                <div>
+                    <span style="font-size:.72rem;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted)">Avg. Daily Hours</span><br />
+                    <strong style="font-size:.92rem">@dailyUsages.Average(d => d.HoursWorked).ToString("N1") hrs</strong>
+                </div>
+                <div>
+                    <span style="font-size:.72rem;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted)">Days Recorded</span><br />
+                    <strong style="font-size:.92rem">@dailyUsages.Count days</strong>
+                </div>
+                <div>
+                    <span style="font-size:.72rem;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted)">Peak Usage</span><br />
+                    <strong style="font-size:.92rem">@dailyUsages.Max(d => d.HeaterValue).ToString("N2") kWh</strong>
+                </div>
+            </div>
+        }
+        else
+        {
+            <p style="color:var(--text-muted);font-size:.85rem;padding:16px;background:#f8fafc;border-radius:8px;border:1px solid var(--border)">
+                No daily usage data available for this period.
+            </p>
+        }
+
+        <!-- ── FOOTER ── -->
+        <div class="report-footer">
+            <p>GridWatch Mayor Portal &bull; Confidential — For Official Use Only</p>
+            <p>@Model?.GeneratedAt.ToString("yyyy")</p>
+        </div>
+
+    </div>
+
+    <!-- ── SCREEN ONLY BUTTONS ── -->
+    <div class="no-print text-center py-3">
+        <button onclick="window.print()"
+                style="padding:10px 24px;background:#1a2e4a;color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;font-size:.9rem">
+            <i class="bi bi-printer"></i> Print / Save as PDF
+        </button>
+        &nbsp;
+        <a href="javascript:history.back()"
+           style="padding:10px 24px;border:1px solid #1a2e4a;color:#1a2e4a;border-radius:8px;text-decoration:none;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.9rem;display:inline-block">
+            ← Back
+        </a>
+    </div>
+</body>
+</html>

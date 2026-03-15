@@ -1,0 +1,627 @@
+﻿@model List<Business_Layer.DTO.HouseDetailVm>
+@using Models.Models
+@{
+    Layout = "_layout";
+    ViewData["Title"] = "House Details";
+
+    var zoneColors = new Dictionary<string, string> {
+        {"North","#3b9eff"},{"South","#00c9a7"},{"East","#f5a623"},
+        {"West","#e84444"},{"Central","#9b59b6"}
+    };
+
+    if (Model == null || !Model.Any())
+    {
+        <div>No houses available</div>
+        return;
+    }
+
+    var heatersByHouse = ViewBag.HeatersByHouse as Dictionary<int, List<Models.Models.Heater>>
+                         ?? new Dictionary<int, List<Models.Models.Heater>>();
+
+    // ── active house driven by ViewBag.ActiveHouseId (set by controller) ──
+    int activeHouseId = ViewBag.ActiveHouseId ?? Model[0].HouseId;
+    var active = Model.FirstOrDefault(h => h.HouseId == activeHouseId) ?? Model[0];
+    int activeIndex = Model.IndexOf(active);
+
+    var activeHeaters = heatersByHouse.ContainsKey(active.HouseId)
+                        ? heatersByHouse[active.HouseId]
+                        : new List<Heater>();
+
+    string zoneColor;
+    zoneColors.TryGetValue(active?.CityZone ?? "", out zoneColor);
+    zoneColor ??= "#9b59b6";
+
+    var dailyUsages = active?.DailyUsages?
+        .OrderBy(d => d.UsageDate.Date)
+        .TakeLast(30)
+        .ToList() ?? new List<DailyUsage>();
+
+    // helper: base URL for tab/nav links
+    string baseUrl = $"/Mayor/Mayor/HouseDetails/{ViewBag.OwnerId}";
+}
+
+@section Styles {
+    <style>
+        .house-tab-strip {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 22px;
+        }
+
+        .house-tab {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 16px;
+            border-radius: 10px;
+            border: 1.5px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-muted);
+            font-size: .83rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: border-color .18s, color .18s, background .18s, box-shadow .18s;
+            white-space: nowrap;
+        }
+
+            .house-tab:hover {
+                border-color: var(--accent);
+                color: var(--accent);
+                background: rgba(0,201,167,.04);
+            }
+
+            .house-tab.active {
+                border-color: var(--accent);
+                background: rgba(0,201,167,.1);
+                color: var(--accent);
+                font-weight: 700;
+                box-shadow: 0 2px 8px rgba(0,201,167,.15);
+            }
+
+            .house-tab .tab-num {
+                width: 22px;
+                height: 22px;
+                border-radius: 50%;
+                background: var(--border);
+                display: inline-grid;
+                place-items: center;
+                font-size: .7rem;
+                font-weight: 700;
+                color: var(--text-muted);
+                transition: background .18s, color .18s;
+                flex-shrink: 0;
+            }
+
+            .house-tab.active .tab-num {
+                background: var(--accent);
+                color: #fff;
+            }
+
+        .house-hero {
+            background: linear-gradient(135deg, var(--primary) 0%, #1a3d58 100%);
+            border-radius: var(--radius);
+            padding: 26px;
+            color: #fff;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 0;
+        }
+
+            .house-hero::before {
+                content: '\f4d8';
+                font-family: 'bootstrap-icons';
+                position: absolute;
+                right: -20px;
+                bottom: -30px;
+                font-size: 8rem;
+                opacity: .06;
+                pointer-events: none;
+            }
+
+        .hero-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: .75rem;
+            font-weight: 600;
+            background: rgba(255,255,255,.15);
+            color: #fff;
+        }
+
+        .heater-type-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(245,166,35,.12);
+            color: #f5a623;
+            display: grid;
+            place-items: center;
+            font-size: .9rem;
+        }
+
+        .usage-trend {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: .75rem;
+            font-weight: 600;
+            padding: 2px 7px;
+            border-radius: 20px;
+        }
+
+            .usage-trend.up {
+                background: rgba(232,68,68,.1);
+                color: #e84444;
+            }
+
+            .usage-trend.down {
+                background: rgba(0,201,167,.1);
+                color: #00c9a7;
+            }
+
+            .usage-trend.flat {
+                background: rgba(107,124,147,.1);
+                color: var(--text-muted);
+            }
+
+        .summary-bar {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            padding: 14px 18px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .summary-bar-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            padding-right: 14px;
+            border-right: 1px solid var(--border);
+        }
+
+            .summary-bar-item:last-child {
+                border-right: none;
+                padding-right: 0;
+            }
+
+        .summary-bar-label {
+            font-size: .68rem;
+            text-transform: uppercase;
+            letter-spacing: .8px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .summary-bar-value {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: .95rem;
+            color: var(--text-main);
+        }
+    </style>
+}
+
+<!-- Breadcrumb -->
+<nav style="margin-bottom:18px" aria-label="breadcrumb">
+    <ol class="breadcrumb" style="font-size:.82rem;background:none;padding:0;margin:0">
+        <li class="breadcrumb-item">
+            <a href="/Mayor/Mayor/Dashboard" style="color:var(--text-muted);text-decoration:none">Dashboard</a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="/Mayor/Mayor/Owners" style="color:var(--text-muted);text-decoration:none">Owners</a>
+        </li>
+        @if (ViewBag.OwnerId != null)
+        {
+            <li class="breadcrumb-item">
+                <a href="/Mayor/Mayor/Owner/@ViewBag.OwnerId"
+                   style="color:var(--text-muted);text-decoration:none">@(active?.OwnerName ?? "Owner")</a>
+            </li>
+        }
+        <li class="breadcrumb-item active" style="color:var(--text-main)">House Details</li>
+    </ol>
+</nav>
+
+<!-- Page header -->
+<div class="d-flex align-items-start justify-content-between mb-3">
+    <div>
+        <h1 style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.4rem;margin:0 0 4px">
+            @(active?.OwnerName)'s Properties
+        </h1>
+        <p style="color:var(--text-muted);font-size:.88rem;margin:0">
+            @Model.Count house@(Model.Count != 1 ? "s" : "") registered
+            &nbsp;·&nbsp; viewing house @(activeIndex + 1) of @Model.Count
+        </p>
+    </div>
+</div>
+
+@* ── SUMMARY BAR (multi-house only) ── *@
+@if (Model.Count > 1)
+{
+    double totalToday = Model.Sum(h => h.todayUsage);
+    int totalHeaters = heatersByHouse.Values.Sum(list => list.Count);
+    int zonesCount = Model.Select(h => h.CityZone).Distinct().Count();
+
+    <div class="summary-bar">
+        <div class="summary-bar-item">
+            <span class="summary-bar-label">Total Properties</span>
+            <span class="summary-bar-value">@Model.Count</span>
+        </div>
+        <div class="summary-bar-item">
+            <span class="summary-bar-label">Total Heaters</span>
+            <span class="summary-bar-value">@totalHeaters</span>
+        </div>
+        <div class="summary-bar-item">
+            <span class="summary-bar-label">Combined Today</span>
+            <span class="summary-bar-value">@totalToday.ToString("N2") kWh</span>
+        </div>
+        <div class="summary-bar-item">
+            <span class="summary-bar-label">Zones Covered</span>
+            <span class="summary-bar-value">@zonesCount</span>
+        </div>
+    </div>
+}
+
+@* ── HOUSE SELECTOR TABS (multi-house only) ── *@
+@if (Model.Count > 1)
+{
+    <div class="house-tab-strip">
+        @foreach (var h in Model)
+        {
+            string hc;
+            zoneColors.TryGetValue(h.CityZone ?? "", out hc);
+            hc ??= "#9b59b6";
+
+            <a href="@baseUrl?houseId=@h.HouseId"
+               class="house-tab @(h.HouseId == active.HouseId ? "active" : "")">
+                <span class="tab-num">@(Model.IndexOf(h) + 1)</span>
+                <span>@h.Address</span>
+                <span style="background:@(hc)22;color:@hc;padding:2px 8px;border-radius:20px;font-size:.68rem;font-weight:600;margin-left:2px">
+                    @h.CityZone
+                </span>
+            </a>
+        }
+    </div>
+}
+
+<!-- ── HERO CARD ── -->
+<div class="row g-3 mb-4">
+    <div class="col-12 col-lg-8">
+        <div class="house-hero">
+            <div class="d-flex align-items-start justify-content-between mb-3 flex-wrap gap-2">
+                <div>
+                    <div style="font-size:.75rem;opacity:.6;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Property Address</div>
+                    <h2 style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.4rem;margin:0">@active?.Address</h2>
+                </div>
+                <span class="hero-chip" style="background:@(zoneColor)33;color:#fff">
+                    <i class="bi bi-geo-alt-fill"></i> @active?.CityZone Zone
+                </span>
+            </div>
+            <div class="d-flex gap-4 flex-wrap"
+                 style="border-top:1px solid rgba(255,255,255,.12);padding-top:16px;margin-top:4px">
+                <div>
+                    <div style="font-size:.72rem;opacity:.55;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px">Owner</div>
+                    <div style="font-weight:600;font-size:.92rem">
+                        <i class="bi bi-person-fill me-1"></i>@active?.OwnerName
+                    </div>
+                </div>
+                <div>
+                    <div style="font-size:.72rem;opacity:.55;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px">Heaters</div>
+                    <div style="font-weight:600;font-size:.92rem">
+                        <i class="bi bi-thermometer-high me-1"></i>@activeHeaters.Count installed
+                    </div>
+                </div>
+                <div>
+                    <div style="font-size:.72rem;opacity:.55;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px">Today's Usage</div>
+                    <div style="font-weight:600;font-size:.92rem">
+                        <i class="bi bi-lightning-fill me-1"></i>@active?.todayUsage.ToString("N2") kWh
+                    </div>
+                </div>
+                @if (Model.Count > 1)
+                {
+                    <div style="margin-left:auto">
+                        <div style="font-size:.72rem;opacity:.55;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px">House</div>
+                        <div style="font-weight:700;font-size:.92rem;opacity:.9">
+                            @(activeIndex + 1) / @Model.Count
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick stats -->
+    <div class="col-12 col-lg-4">
+        <div class="row g-3 h-100">
+            <div class="col-6 col-lg-12">
+                <div class="stat-card">
+                    <div class="stat-card-icon" style="background:rgba(245,166,35,.12);color:#f5a623">
+                        <i class="bi bi-thermometer-high"></i>
+                    </div>
+                    <div class="stat-card-label">Installed Heaters</div>
+                    <div class="stat-card-value">@activeHeaters.Count</div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-12">
+                <div class="stat-card">
+                    <div class="stat-card-icon" style="background:rgba(232,68,68,.12);color:#e84444">
+                        <i class="bi bi-calendar-day"></i>
+                    </div>
+                    <div class="stat-card-label">Today's Consumption</div>
+                    <div class="stat-card-value" style="font-size:1.6rem">
+                        @active?.todayUsage.ToString("N1")
+                        <span style="font-size:.85rem;font-weight:400;color:var(--text-muted)">kWh</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ── PREV / NEXT NAV (multi-house only) ── *@
+@if (Model.Count > 1)
+{
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        @if (activeIndex > 0)
+        {
+            <a href="@baseUrl?houseId=@Model[activeIndex - 1].HouseId" class="btn-outline-primary-custom">
+                <i class="bi bi-chevron-left"></i> @Model[activeIndex - 1].Address
+            </a>
+        }
+        else
+        {
+
+            <span></span>
+        }
+
+        @if (activeIndex < Model.Count - 1)
+        {
+            <a href="@baseUrl?houseId=@Model[activeIndex + 1].HouseId" class="btn-accent">
+                @Model[activeIndex + 1].Address <i class="bi bi-chevron-right"></i>
+            </a>
+        }
+        else
+        {
+
+            <span></span>
+        }
+    </div>
+}
+
+<!-- ── HEATERS TABLE ── -->
+<div class="card mb-4">
+    <div class="card-header-custom">
+        <h2 class="card-title-custom">
+            <i class="bi bi-thermometer-half me-2" style="color:#f5a623"></i>Installed Heaters
+        </h2>
+        <span style="font-size:.78rem;color:var(--text-muted)">@activeHeaters.Count unit(s)</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-custom mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Heater Type</th>
+                    <th>Power Value</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (activeHeaters.Any())
+                {
+                    int idx = 1;
+                    foreach (var heater in activeHeaters)
+                    {
+                        <tr>
+                            <td style="color:var(--text-muted);font-size:.8rem">@idx</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="heater-type-icon"><i class="bi bi-thermometer-high"></i></div>
+                                    <strong>@heater.HeaterType</strong>
+                                </div>
+                            </td>
+                            <td>
+                                <span style="font-weight:700;font-size:1rem">@heater.PowerValue</span>
+                                <span style="color:var(--text-muted);font-size:.8rem"> kW</span>
+                            </td>
+                            <td>
+                                <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;background:rgba(0,201,167,.1);color:#00c9a7;font-size:.75rem;font-weight:600">
+                                    <i class="bi bi-circle-fill" style="font-size:.4rem"></i> Active
+                                </span>
+                            </td>
+                        </tr>
+                        idx++;
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="4" style="text-align:center;padding:36px;color:var(--text-muted)">
+                            <i class="bi bi-thermometer" style="font-size:2rem;display:block;margin-bottom:8px"></i>
+                            No heaters registered for this house.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ── DAILY USAGE TABLE ── -->
+<div class="card mb-4">
+    <div class="card-header-custom">
+        <h2 class="card-title-custom">
+            <i class="bi bi-table me-2" style="color:#3b9eff"></i>Daily Usage Log
+        </h2>
+        <span style="font-size:.78rem;color:var(--text-muted)">Last @dailyUsages.Count entries</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-custom mb-0">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Hours Worked</th>
+                    <th>Heater Value</th>
+                    <th>Trend</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (dailyUsages.Any())
+                {
+                    for (int i = 0; i < dailyUsages.Count; i++)
+                    {
+                        var usage = dailyUsages[i];
+                        string trendClass = "flat";
+                        string trendIcon = "dash";
+                        if (i > 0)
+                        {
+                            double prev = dailyUsages[i - 1].HeaterValue;
+                            if (usage.HeaterValue > prev * 1.05) { trendClass = "up"; trendIcon = "arrow-up"; }
+                            else if (usage.HeaterValue < prev * 0.95) { trendClass = "down"; trendIcon = "arrow-down"; }
+                        }
+                        <tr>
+                            <td><strong>@usage.UsageDate.Date.ToString("MMM dd, yyyy")</strong></td>
+                            <td>
+                                <i class="bi bi-clock me-1" style="color:var(--text-muted)"></i>
+                                @usage.HoursWorked.ToString("N1") hrs
+                            </td>
+                            <td>
+                                <strong>@usage.HeaterValue.ToString("N2")</strong>
+                                <span style="color:var(--text-muted);font-size:.8rem"> kWh</span>
+                            </td>
+                            <td>
+                                <span class="usage-trend @trendClass">
+                                    <i class="bi bi-@trendIcon"></i>
+                                    @trendClass.ToUpper()
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="4" style="text-align:center;padding:36px;color:var(--text-muted)">
+                            No usage data recorded yet.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ── CHARTS ── -->
+<div class="row g-3 mb-3">
+    <div class="col-12 col-xl-8">
+        <div class="card">
+            <div class="card-header-custom">
+                <h2 class="card-title-custom">
+                    <i class="bi bi-graph-up me-2" style="color:#3b9eff"></i>Daily Usage — Last 30 Days
+                </h2>
+            </div>
+            <div class="p-3">
+                <div class="chart-container" style="height:260px">
+                    <canvas id="lineChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-xl-4">
+        <div class="card">
+            <div class="card-header-custom">
+                <h2 class="card-title-custom">
+                    <i class="bi bi-bar-chart me-2" style="color:#f5a623"></i>Hours Worked / Day
+                </h2>
+            </div>
+            <div class="p-3">
+                <div class="chart-container" style="height:260px">
+                    <canvas id="barChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── BOTTOM ACTIONS ── -->
+<div class="d-flex gap-2 mt-2 flex-wrap">
+    @if (ViewBag.OwnerId != null)
+    {
+        <a href="/Mayor/Mayor/Owner/@ViewBag.OwnerId" class="btn-outline-primary-custom">
+            <i class="bi bi-arrow-left"></i> Back to Owner
+        </a>
+    }
+    <a href="/Mayor/Mayor/Reports?houseId=@active.HouseId" class="btn-accent">
+        <i class="bi bi-printer"></i> Print Report
+    </a>
+</div>
+
+@section Scripts {
+    <script>
+        const dailyLabels = @Html.Raw(Json.Serialize(
+                    dailyUsages.Select(d => d.UsageDate.Date.ToString("MMM dd")).ToList()
+            ));
+    const dailyHeaterValues = @Html.Raw(Json.Serialize(
+                dailyUsages.Select(d => d.HeaterValue).ToList()
+        ));
+    const dailyHoursValues = @Html.Raw(Json.Serialize(
+                dailyUsages.Select(d => d.HoursWorked).ToList()
+        ));
+
+    new Chart(document.getElementById('lineChart'), {
+        type: 'line',
+        data: {
+            labels: dailyLabels,
+            datasets: [{
+                label: 'Usage (kWh)',
+                data: dailyHeaterValues,
+                borderColor: '#3b9eff',
+                backgroundColor: 'rgba(59,158,255,.08)',
+                borderWidth: 2,
+                pointRadius: 3,
+                pointHoverRadius: 6,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
+            scales: {
+                x: { grid: { display: false }, ticks: { maxTicksLimit: 10, font: { size: 11 } } },
+                y: { grid: { color: '#e2e8f0' }, ticks: { callback: v => v + ' kWh' } }
+            }
+        }
+    });
+
+        new Chart(document.getElementById('barChart'), {
+            type: 'bar',
+            data: {
+                labels: dailyLabels,
+                datasets: [{
+                    label: 'Hours Worked',
+                    data: dailyHoursValues,
+                    backgroundColor: 'rgba(245,166,35,.75)',
+                    borderColor: '#f5a623',
+                    borderWidth: 1.5,
+                    borderRadius: 5
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { maxTicksLimit: 10, font: { size: 11 } } },
+                    y: { grid: { color: '#e2e8f0' }, ticks: { callback: v => v + ' h' } }
+                }
+            }
+        });
+    </script>
+}

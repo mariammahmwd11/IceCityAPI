@@ -1,0 +1,174 @@
+﻿@model Models.Helper.PagedResult<Business_Layer.DTO.OwnerVm>
+@{
+    Layout = "_layout";
+    ViewData["Title"] = "Owners";
+
+    int currentPage = ViewBag.CurrentPage ?? 1;
+    int totalPages = ViewBag.TotalPages ?? 1;
+    int pageSize = ViewBag.PageSize ?? 10;
+    string search = ViewBag.Search ?? "";
+}
+
+@section Styles {
+    <style>
+        .owner-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: #fff;
+            display: inline-grid;
+            place-items: center;
+            font-size: .78rem;
+            font-weight: 700;
+            font-family: 'Syne', sans-serif;
+            flex-shrink: 0;
+        }
+
+        .house-count-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            background: rgba(59,158,255,.1);
+            color: #3b9eff;
+            border-radius: 20px;
+            font-size: .78rem;
+            font-weight: 600;
+        }
+    </style>
+}
+
+<!-- Page Header -->
+<div class="page-header d-flex align-items-start justify-content-between">
+    <div>
+        <h1>Owners</h1>
+        <p>All registered property owners in the city.</p>
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="card">
+    <div class="card-header-custom">
+        <h2 class="card-title-custom"><i class="bi bi-people me-2" style="color:#3b9eff"></i>Owner Directory</h2>
+        <!-- Search -->
+        <form method="get" action="/Mayor/Mayor/Owners" id="searchForm">
+            <div class="search-wrapper">
+                <i class="bi bi-search"></i>
+                <input type="text"
+                       name="search"
+                       id="searchInput"
+                       class="search-input"
+                       placeholder="Search by name…"
+                       value="@search"
+                       autocomplete="off" />
+                <input type="hidden" name="page" value="1" />
+            </div>
+        </form>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-custom mb-0" id="ownersTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Owner Name</th>
+                    <th>Phone Number</th>
+                    <th>Houses</th>
+                    <th style="text-align:right">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{
+                    int rowNum = (currentPage - 1) * pageSize + 1;
+                }
+                @if (Model?.Data != null && Model.Data.Any())
+                {
+                    @foreach (var owner in Model.Data)
+                    {
+                        string initials = string.Join("", owner.FullName?.Split(' ')
+                        .Where(w => w.Length > 0)
+                        .Take(2)
+                        .Select(w => w[0].ToString().ToUpper())
+                        ?? Array.Empty<string>());
+
+                        <tr>
+                            <td style="color:var(--text-muted);font-size:.8rem">@rowNum</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="owner-avatar">@initials</div>
+                                    <strong>@owner.FullName</strong>
+                                </div>
+                            </td>
+                            <td style="color:var(--text-muted)">
+                                <i class="bi bi-telephone me-1" style="font-size:.8rem"></i>@owner.PhoneNumber
+                            </td>
+                            <td>
+                                <span class="house-count-badge">
+                                    <a href="/Mayor/Mayor/HouseDetails/@owner.ownerid" class="btn-accent" style="font-size:.78rem;padding:6px 12px">
+                                    <i class="bi bi-house"></i> @owner.houseCount
+                                    </a>
+                                </span>
+                            </td>
+                            <td style="text-align:right">
+                                <a href="/Mayor/Mayor/Owner/@owner.ownerid" class="btn-accent" style="font-size:.78rem;padding:6px 12px">
+                                    <i class="bi bi-eye"></i> Details
+                                </a>
+                            </td>
+                        </tr>
+                        rowNum++;
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted)">
+                            <i class="bi bi-inbox" style="font-size:2rem;display:block;margin-bottom:8px"></i>
+                            No owners found @(string.IsNullOrEmpty(search) ? "" : $"for \"{search}\"")
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination Footer -->
+    <div class="d-flex align-items-center justify-content-between px-3 py-3 border-top" style="border-color:var(--border)!important">
+        <span style="font-size:.82rem;color:var(--text-muted)">
+            Showing page <strong>@currentPage</strong> of <strong>@totalPages</strong>
+            &nbsp;·&nbsp; @(Model?.TotalItems ?? 0) total owners
+        </span>
+        <nav class="pagination-custom">
+            <!-- Prev -->
+            <a href="/Mayor/Mayor/Owners?search=@Uri.EscapeDataString(search)&page=@(currentPage - 1)"
+               class="page-btn @(currentPage <= 1 ? "disabled" : "")">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+
+            @for (int p = Math.Max(1, currentPage - 2); p <= Math.Min(totalPages, currentPage + 2); p++)
+            {
+                <a href="/Mayor/Mayor/Owners?search=@Uri.EscapeDataString(search)&page=@p"
+                   class="page-btn @(p == currentPage ? "active" : "")">@p</a>
+            }
+
+            <!-- Next -->
+            <a href="/Mayor/Mayor/Owners?search=@Uri.EscapeDataString(search)&page=@(currentPage + 1)"
+               class="page-btn @(currentPage >= totalPages ? "disabled" : "")">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </nav>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Auto-submit search on input (debounced)
+        let searchTimer;
+        document.getElementById('searchInput')?.addEventListener('input', function () {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => {
+                document.getElementById('searchForm').submit();
+            }, 420);
+        });
+    </script>
+}

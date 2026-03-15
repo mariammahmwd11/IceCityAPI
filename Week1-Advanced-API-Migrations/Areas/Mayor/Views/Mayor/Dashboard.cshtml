@@ -1,0 +1,330 @@
+﻿@model Business_Layer.DTO.DashboardOverviewVm
+@{
+    Layout = "_layout";
+    ViewData["Title"] = "Dashboard Overview";
+
+    // Zone colors for badges
+    var zoneColors = new Dictionary<string, string> {
+        {"North", "#3b9eff"}, {"South","#00c9a7"}, {"East","#f5a623"},
+        {"West","#e84444"}, {"Central","#9b59b6"}
+    };
+}
+
+@section Styles {
+    <style>
+        .stat-card-1 .stat-card-icon {
+            background: rgba(59,158,255,.12);
+            color: #3b9eff;
+        }
+
+        .stat-card-2 .stat-card-icon {
+            background: rgba(0,201,167,.12);
+            color: #00c9a7;
+        }
+
+        .stat-card-3 .stat-card-icon {
+            background: rgba(245,166,35,.12);
+            color: #f5a623;
+        }
+
+        .stat-card-4 .stat-card-icon {
+            background: rgba(232,68,68,.12);
+            color: #e84444;
+        }
+
+        .top5-rank {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: var(--bg-page);
+            display: inline-grid;
+            place-items: center;
+            font-size: .75rem;
+            font-weight: 700;
+            color: var(--text-muted);
+        }
+
+            .top5-rank.gold {
+                background: rgba(245,166,35,.15);
+                color: #d4920a;
+            }
+
+            .top5-rank.silver {
+                background: rgba(107,124,147,.15);
+                color: #4a5568;
+            }
+
+            .top5-rank.bronze {
+                background: rgba(180,120,60,.15);
+                color: #8b5e2e;
+            }
+
+        .usage-bar-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .usage-bar {
+            flex: 1;
+            height: 6px;
+            background: var(--border);
+            border-radius: 99px;
+            overflow: hidden;
+        }
+
+        .usage-bar-fill {
+            height: 100%;
+            border-radius: 99px;
+            background: linear-gradient(90deg, var(--accent), #3b9eff);
+        }
+
+        .chart-wrapper {
+            padding: 6px 4px 4px;
+        }
+    </style>
+}
+
+<!-- Page header -->
+<div class="page-header d-flex align-items-start justify-content-between">
+    <div>
+        <h1>Dashboard Overview</h1>
+        <p>Real-time electricity heater monitoring across the city.</p>
+    </div>
+   </div>
+
+<!-- ── STAT CARDS ── -->
+<div class="row g-3 mb-4">
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card stat-card-1">
+            <div class="stat-card-icon"><i class="bi bi-people-fill"></i></div>
+            <div class="stat-card-label">Total Owners</div>
+            <div class="stat-card-value">@Model.TotalOwners.ToString("N0")</div>
+            <div class="stat-card-sub">Registered property owners</div>
+            <i class="bi bi-people-fill stat-card-bg"></i>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card stat-card-2">
+            <div class="stat-card-icon"><i class="bi bi-house-fill"></i></div>
+            <div class="stat-card-label">Total Houses</div>
+            <div class="stat-card-value">@Model.TotalHouses.ToString("N0")</div>
+            <div class="stat-card-sub">Monitored properties</div>
+            <i class="bi bi-house-fill stat-card-bg"></i>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card stat-card-3">
+            <div class="stat-card-icon"><i class="bi bi-lightning-charge-fill"></i></div>
+            <div class="stat-card-label">Total Consumption</div>
+            <div class="stat-card-value">@Model.TotalConsumption.ToString("N1")<span style="font-size:1rem;font-weight:400;color:var(--text-muted)"> kWh</span></div>
+            <div class="stat-card-sub">Cumulative all-time usage</div>
+            <i class="bi bi-lightning-charge-fill stat-card-bg"></i>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card stat-card-4">
+            <div class="stat-card-icon"><i class="bi bi-calendar-day-fill"></i></div>
+            <div class="stat-card-label">Today's Consumption</div>
+            <div class="stat-card-value">@Model.TodayConsumption.ToString("N1")<span style="font-size:1rem;font-weight:400;color:var(--text-muted)"> kWh</span></div>
+            <div class="stat-card-sub">As of @DateTime.Now.ToString("HH:mm")</div>
+            <i class="bi bi-calendar-day-fill stat-card-bg"></i>
+        </div>
+    </div>
+</div>
+
+<!-- ── TOP 5 HOUSES ── -->
+<div class="card mb-4">
+    <div class="card-header-custom">
+        <h2 class="card-title-custom"><i class="bi bi-trophy-fill me-2" style="color:#f5a623"></i>Top 5 Houses — Today's Consumption</h2>
+        <span style="font-size:.78rem;color:var(--text-muted)">@DateTime.Now.ToString("dddd, MMMM d yyyy")</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-custom mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Owner Name</th>
+                    <th>Address</th>
+                    <th>City Zone</th>
+                    <th>Today's Usage</th>
+                    <th>Relative</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{
+                    var maxUsage = Model.top5Houses?.Max(h => h.todayUsage) ?? 1;
+                    int rank = 0;
+                }
+                @foreach (var house in Model.top5Houses ?? new List<Business_Layer.DTO.HouseDetailVm>())
+                {
+                    rank++;
+                    string rankClass = rank == 1 ? "gold" : rank == 2 ? "silver" : rank == 3 ? "bronze" : "";
+                    string zoneColor;
+                    zoneColors.TryGetValue(house.CityZone ?? "", out zoneColor);
+                    zoneColor ??= "#9b59b6";
+                    double pct = maxUsage > 0 ? (house.todayUsage / maxUsage) * 100 : 0;
+                    <tr>
+                        <td><span class="top5-rank @rankClass">@rank</span></td>
+                        <td><strong>@house.OwnerName</strong></td>
+                        <td style="color:var(--text-muted)">@house.Address</td>
+                        <td>
+                            <span class="zone-badge" style="background:@(zoneColor)22;color:@zoneColor">
+                                @house.CityZone
+                            </span>
+                        </td>
+                        <td><strong>@house.todayUsage.ToString("N2")</strong> <span style="color:var(--text-muted);font-size:.8rem">kWh</span></td>
+                        <td style="min-width:120px">
+                            <div class="usage-bar-wrap">
+                                <div class="usage-bar"><div class="usage-bar-fill" style="width:@pct.ToString("F0")%"></div></div>
+                                <span style="font-size:.75rem;color:var(--text-muted);min-width:34px">@pct.ToString("F0")%</span>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ── CHARTS ROW 1 ── -->
+<div class="row g-3 mb-3">
+    <!-- Line Chart – Daily Usage Last 30 Days -->
+    <div class="col-12 col-xl-8">
+        <div class="card h-100">
+            <div class="card-header-custom">
+                <h2 class="card-title-custom"><i class="bi bi-graph-up me-2" style="color:#3b9eff"></i>Daily Total Usage — Last 30 Days</h2>
+                <span style="font-size:.75rem;color:var(--text-muted)">kWh per day</span>
+            </div>
+            <div class="chart-wrapper p-3">
+                <div class="chart-container" style="height:280px">
+                    <canvas id="lineChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pie Chart – Consumption by Zone -->
+    <div class="col-12 col-xl-4">
+        <div class="card h-100">
+            <div class="card-header-custom">
+                <h2 class="card-title-custom"><i class="bi bi-pie-chart-fill me-2" style="color:#00c9a7"></i>Consumption by Zone</h2>
+            </div>
+            <div class="chart-wrapper p-3 d-flex align-items-center justify-content-center" style="height:316px">
+                <canvas id="pieChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── CHARTS ROW 2 ── -->
+<div class="row g-3">
+    <!-- Bar Chart – Heater Power Distribution -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header-custom">
+                <h2 class="card-title-custom"><i class="bi bi-bar-chart-fill me-2" style="color:#f5a623"></i>Heater Power Distribution</h2>
+                <span style="font-size:.75rem;color:var(--text-muted)">Number of heaters by power rating</span>
+            </div>
+            <div class="chart-wrapper p-3">
+                <div class="chart-container" style="height:240px">
+                    <canvas id="barChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+      
+
+        const today = new Date();
+        const last30Days = Array.from({length: 30}, (_, i) => {
+            const d = new Date(today);
+            d.setDate(d.getDate() - (29 - i));
+            return d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+        });
+
+        const dailyValues = last30Days.map(() => +(Math.random() * 600 + 200).toFixed(1));
+        const zoneLabels  = ['North','South','East','West','Central'];
+        const zoneValues  = [320, 280, 210, 390, 175];
+        const powerLabels = ['1 kW','1.5 kW','2 kW','2.5 kW','3 kW','4 kW','5 kW'];
+        const powerCounts = [12, 28, 45, 31, 22, 10, 6];
+
+        const palette = ['#3b9eff','#00c9a7','#f5a623','#e84444','#9b59b6'];
+
+        // ── LINE CHART ──
+        new Chart(document.getElementById('lineChart'), {
+            type: 'line',
+            data: {
+                labels: last30Days,
+                datasets: [{
+                    label: 'Total Usage (kWh)',
+                    data: dailyValues,
+                    borderColor: '#3b9eff',
+                    backgroundColor: 'rgba(59,158,255,.08)',
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: { mode:'index', intersect:false } },
+                scales: {
+                    x: { grid:{ display:false }, ticks:{ maxTicksLimit:10 } },
+                    y: { grid:{ color:'#e2e8f0' }, ticks:{ callback: v => v + ' kWh' } }
+                }
+            }
+        });
+
+        // ── PIE CHART ──
+        new Chart(document.getElementById('pieChart'), {
+            type: 'doughnut',
+            data: {
+                labels: zoneLabels,
+                datasets: [{
+                    data: zoneValues,
+                    backgroundColor: palette,
+                    borderWidth: 0,
+                    hoverOffset: 8
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                cutout: '62%',
+                plugins: {
+                    legend: { position:'bottom' },
+                    tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed} kWh` } }
+                }
+            }
+        });
+
+        // ── BAR CHART ──
+        new Chart(document.getElementById('barChart'), {
+            type: 'bar',
+            data: {
+                labels: powerLabels,
+                datasets: [{
+                    label: 'Number of Heaters',
+                    data: powerCounts,
+                    backgroundColor: powerLabels.map((_, i) => palette[i % palette.length] + 'cc'),
+                    borderColor:     powerLabels.map((_, i) => palette[i % palette.length]),
+                    borderWidth: 1.5,
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid:{ display:false } },
+                    y: { grid:{ color:'#e2e8f0' }, ticks:{ stepSize:10 } }
+                }
+            }
+        });
+    </script>
+}

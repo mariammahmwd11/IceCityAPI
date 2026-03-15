@@ -22,6 +22,10 @@ namespace Week1_Advanced_API_Migrations.Controllers
             if (ModelState.IsValid)
             {
                 var result = authService.Register(registerDTO);
+                if (!string.IsNullOrEmpty(result.Token))
+                {
+                    SetAccessTokenInCookie(result.Token, result.TokenExbireAt);
+                }
                 if (result.IsAuthenticated == false)
                 {
                     if (result.Message == "This email is token before")
@@ -44,7 +48,11 @@ namespace Week1_Advanced_API_Migrations.Controllers
             if (ModelState.IsValid)
             {
                 var result = authService.login(loginDto);
-                if(result.IsAuthenticated==false)
+                if (!string.IsNullOrEmpty(result.Token))
+                {
+                    SetAccessTokenInCookie(result.Token, result.TokenExbireAt);
+                }
+                if (result.IsAuthenticated==false)
                 {
                     return BadRequest(result.Message);
                 }
@@ -66,6 +74,18 @@ namespace Week1_Advanced_API_Migrations.Controllers
 
             return Ok(result);
          
+        }
+        private void SetAccessTokenInCookie(string key, DateTime ExbireAt)
+        {
+            var cookieOption = new CookieOptions
+            {
+                Expires = ExbireAt.ToLocalTime(),
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                HttpOnly = true
+
+            };
+            Response.Cookies.Append("AccessTokenInCookie", key, cookieOption);
         }
     }
 }

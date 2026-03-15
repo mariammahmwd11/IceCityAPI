@@ -1,0 +1,614 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] — Mayor Dashboard</title>
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+    <style>
+        :root {
+            --sidebar-width: 260px;
+            --topbar-height: 64px;
+            --primary: #1a2e4a;
+            --primary-light: #243d5e;
+            --accent: #00c9a7;
+            --accent-hover: #00a98a;
+            --danger: #e84444;
+            --warning: #f5a623;
+            --info: #3b9eff;
+            --text-main: #1c2b3a;
+            --text-muted: #6b7c93;
+            --bg-page: #f0f4f8;
+            --bg-card: #ffffff;
+            --border: #e2e8f0;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+            --shadow-md: 0 4px 16px rgba(0,0,0,.08);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,.1);
+            --radius: 14px;
+            --radius-sm: 8px;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg-page);
+            color: var(--text-main);
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        /* ── SIDEBAR ── */
+        #sidebar {
+            position: fixed;
+            top: 0; left: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--primary);
+            display: flex;
+            flex-direction: column;
+            z-index: 1040;
+            transition: transform .3s ease;
+            overflow: hidden;
+        }
+
+        #sidebar::before {
+            content: '';
+            position: absolute;
+            top: -80px; right: -80px;
+            width: 240px; height: 240px;
+            border-radius: 50%;
+            background: rgba(0,201,167,.08);
+            pointer-events: none;
+        }
+
+        .sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 24px 24px 20px;
+            border-bottom: 1px solid rgba(255,255,255,.08);
+            text-decoration: none;
+        }
+
+        .sidebar-brand-icon {
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg, var(--accent), #00a0ff);
+            border-radius: 10px;
+            display: grid;
+            place-items: center;
+            font-size: 1.1rem;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .sidebar-brand-text {
+            line-height: 1.2;
+        }
+
+        .sidebar-brand-text strong {
+            display: block;
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: .95rem;
+            color: #fff;
+            letter-spacing: .3px;
+        }
+
+        .sidebar-brand-text span {
+            font-size: .72rem;
+            color: rgba(255,255,255,.45);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 20px 14px;
+            overflow-y: auto;
+        }
+
+        .nav-section-label {
+            font-size: .65rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: rgba(255,255,255,.3);
+            padding: 12px 10px 6px;
+            font-weight: 600;
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 11px 14px;
+            border-radius: 10px;
+            text-decoration: none;
+            color: rgba(255,255,255,.65);
+            font-size: .88rem;
+            font-weight: 500;
+            transition: background .18s, color .18s;
+            margin-bottom: 2px;
+            position: relative;
+        }
+
+        .sidebar-link i { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; }
+
+        .sidebar-link:hover {
+            background: rgba(255,255,255,.08);
+            color: #fff;
+        }
+
+        .sidebar-link.active {
+            background: linear-gradient(90deg, rgba(0,201,167,.22), rgba(0,201,167,.06));
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .sidebar-link.active::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 6px; bottom: 6px;
+            width: 3px;
+            background: var(--accent);
+            border-radius: 0 3px 3px 0;
+        }
+
+        .sidebar-footer {
+            padding: 16px 14px;
+            border-top: 1px solid rgba(255,255,255,.08);
+        }
+
+        .sidebar-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border-radius: 10px;
+            background: rgba(255,255,255,.05);
+        }
+
+        .sidebar-user-avatar {
+            width: 34px; height: 34px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), #00a0ff);
+            display: grid;
+            place-items: center;
+            font-size: .8rem;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .sidebar-user-info strong {
+            display: block;
+            font-size: .82rem;
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .sidebar-user-info span {
+            font-size: .72rem;
+            color: rgba(255,255,255,.4);
+        }
+
+        /* ── TOPBAR ── */
+        #topbar {
+            position: fixed;
+            top: 0;
+            left: var(--sidebar-width);
+            right: 0;
+            height: var(--topbar-height);
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 28px;
+            z-index: 1030;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .topbar-title {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--text-main);
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .topbar-icon-btn {
+            width: 38px; height: 38px;
+            border-radius: 10px;
+            background: var(--bg-page);
+            border: none;
+            display: grid;
+            place-items: center;
+            color: var(--text-muted);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background .18s, color .18s;
+            text-decoration: none;
+        }
+
+        .topbar-icon-btn:hover { background: var(--border); color: var(--text-main); }
+
+        .topbar-avatar {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            display: grid;
+            place-items: center;
+            color: #fff;
+            font-size: .85rem;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: 'Syne', sans-serif;
+        }
+
+        /* ── MAIN CONTENT ── */
+        #main-content {
+            margin-left: var(--sidebar-width);
+            margin-top: var(--topbar-height);
+            padding: 28px;
+            min-height: calc(100vh - var(--topbar-height));
+        }
+
+        /* ── CARDS ── */
+        .card {
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+            background: var(--bg-card);
+        }
+
+        .card-header-custom {
+            padding: 18px 22px 14px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-title-custom {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: .95rem;
+            color: var(--text-main);
+            margin: 0;
+        }
+
+        /* ── STAT CARDS ── */
+        .stat-card {
+            border-radius: var(--radius);
+            padding: 22px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            position: relative;
+            overflow: hidden;
+            transition: transform .2s, box-shadow .2s;
+        }
+
+        .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+
+        .stat-card-icon {
+            width: 46px; height: 46px;
+            border-radius: 12px;
+            display: grid;
+            place-items: center;
+            font-size: 1.2rem;
+            margin-bottom: 16px;
+        }
+
+        .stat-card-label {
+            font-size: .78rem;
+            text-transform: uppercase;
+            letter-spacing: .8px;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .stat-card-value {
+            font-family: 'Syne', sans-serif;
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text-main);
+            line-height: 1;
+        }
+
+        .stat-card-sub {
+            font-size: .78rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        .stat-card-bg {
+            position: absolute;
+            right: -20px; bottom: -20px;
+            font-size: 5rem;
+            opacity: .04;
+            pointer-events: none;
+        }
+
+        /* ── TABLES ── */
+        .table-custom thead th {
+            background: var(--bg-page);
+            font-size: .75rem;
+            text-transform: uppercase;
+            letter-spacing: .8px;
+            color: var(--text-muted);
+            font-weight: 700;
+            border-bottom: 1px solid var(--border);
+            padding: 12px 16px;
+            white-space: nowrap;
+        }
+
+        .table-custom tbody td {
+            padding: 13px 16px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+            font-size: .88rem;
+        }
+
+        .table-custom tbody tr:last-child td { border-bottom: none; }
+        .table-custom tbody tr:hover td { background: rgba(0,201,167,.03); }
+
+        /* ── BADGES ── */
+        .zone-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: .72rem;
+            font-weight: 600;
+            letter-spacing: .3px;
+        }
+
+        /* ── BUTTONS ── */
+        .btn-accent {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: .82rem;
+            padding: 7px 14px;
+            transition: background .18s, transform .1s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-accent:hover { background: var(--accent-hover); color: #fff; transform: translateY(-1px); }
+
+        .btn-outline-primary-custom {
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            background: transparent;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: .82rem;
+            padding: 7px 14px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: background .18s, color .18s;
+        }
+
+        .btn-outline-primary-custom:hover { background: var(--primary); color: #fff; }
+
+        /* ── SEARCH ── */
+        .search-wrapper {
+            position: relative;
+        }
+
+        .search-wrapper i {
+            position: absolute;
+            left: 12px; top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: .9rem;
+        }
+
+        .search-input {
+            padding: 9px 12px 9px 36px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: .86rem;
+            background: var(--bg-page);
+            color: var(--text-main);
+            transition: border .2s, box-shadow .2s;
+            width: 240px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(0,201,167,.12);
+            background: #fff;
+        }
+
+        /* ── PAGINATION ── */
+        .pagination-custom {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .page-btn {
+            width: 34px; height: 34px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-muted);
+            display: grid;
+            place-items: center;
+            font-size: .82rem;
+            text-decoration: none;
+            transition: background .18s, color .18s, border-color .18s;
+            font-weight: 500;
+        }
+
+        .page-btn:hover, .page-btn.active {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
+
+        .page-btn.disabled { opacity: .4; pointer-events: none; }
+
+        /* ── CHART CONTAINERS ── */
+        .chart-container { position: relative; }
+
+        /* ── MOBILE SIDEBAR TOGGLE ── */
+        #sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.45);
+            z-index: 1039;
+        }
+
+        @@media (max-width: 991.98px) {
+            #sidebar { transform: translateX(-100%); }
+            #sidebar.open { transform: translateX(0); }
+            #sidebar-overlay.open { display: block; }
+            #topbar { left: 0; }
+            #main-content { margin-left: 0; padding: 20px 16px; }
+        }
+
+        /* ── PAGE HEADER ── */
+        .page-header {
+            margin-bottom: 24px;
+        }
+
+        .page-header h1 {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 1.5rem;
+            color: var(--text-main);
+            margin: 0 0 4px;
+        }
+
+        .page-header p {
+            color: var(--text-muted);
+            font-size: .88rem;
+            margin: 0;
+        }
+
+        /* ── PRINT ── */
+        @@media print {
+            #sidebar, #topbar { display: none !important; }
+            #main-content { margin: 0 !important; padding: 0 !important; }
+        }
+    </style>
+
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+
+    <!-- Sidebar overlay (mobile) -->
+    <div id="sidebar-overlay"></div>
+
+    <!-- ── SIDEBAR ── -->
+    <aside id="sidebar">
+        <a href="/Mayor/Overview" class="sidebar-brand">
+            <div class="sidebar-brand-icon"><i class="bi bi-lightning-charge-fill"></i></div>
+            <div class="sidebar-brand-text">
+                <strong>GridWatch</strong>
+                <span>Mayor Portal</span>
+            </div>
+        </a>
+
+        <nav class="sidebar-nav">
+            <div class="nav-section-label">Main</div>
+            <a href="/Mayor/Mayor/Dashboard" class="sidebar-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Overview" ? "active" : "")">
+                <i class="bi bi-grid-1x2"></i> Dashboard
+            </a>
+            <a href="/Mayor/Mayor/Owners" class="sidebar-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Owners" ? "active" : "")">
+                <i class="bi bi-people"></i> Owners
+            </a>
+
+           
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <div class="sidebar-user-avatar"><i class="bi bi-person"></i></div>
+                <div class="sidebar-user-info">
+                    <strong>Mayor</strong>
+                    <span>Administrator</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ── TOPBAR ── -->
+    <header id="topbar">
+        <div class="d-flex align-items-center gap-3">
+            <button class="topbar-icon-btn d-lg-none" id="sidebar-toggle">
+                <i class="bi bi-list"></i>
+            </button>
+            <span class="topbar-title">@ViewData["Title"]</span>
+        </div>
+        <div class="topbar-right">
+            <a href="#" class="topbar-icon-btn" title="Notifications">
+                <i class="bi bi-bell"></i>
+            </a>
+            <a href="#" class="topbar-icon-btn" title="Settings">
+                <i class="bi bi-gear"></i>
+            </a>
+            <div class="topbar-avatar" title="Mayor Account">M</div>
+        </div>
+    </header>
+
+    <!-- ── MAIN CONTENT ── -->
+    <main id="main-content">
+        @RenderBody()
+    </main>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+
+    <script>
+        // Mobile sidebar toggle
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+
+        sidebarToggle?.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('open');
+        });
+        overlay?.addEventListener('click', () => {
+            sidebar.classList.remove('open');
+            overlay.classList.remove('open');
+        });
+
+        // Global Chart.js defaults
+        Chart.defaults.font.family = "'DM Sans', sans-serif";
+        Chart.defaults.font.size = 12;
+        Chart.defaults.color = '#6b7c93';
+        Chart.defaults.plugins.legend.labels.boxWidth = 10;
+        Chart.defaults.plugins.legend.labels.padding = 16;
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

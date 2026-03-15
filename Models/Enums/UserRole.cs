@@ -10,6 +10,7 @@ namespace Business_Layer.Helper
     {
         Admin,
         Operator,
-        User
+        User,
+        Mayor
     }
 }
